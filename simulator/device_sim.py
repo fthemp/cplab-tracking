@@ -37,9 +37,11 @@ def topics_for(dev: str) -> list[str]:
         return [f"prod/st{dev[-1]}/count"]
     if dev == "prod-color":
         return ["prod/color/last", "prod/color/count", "prod/st4/count"]
+    if dev == "prod-hmi":
+        return ["prod/andon"]
     if dev.startswith("maint-m"):
         return [f"maint/m{dev[-1]}/state", f"maint/m{dev[-1]}/ack"]
-    raise ValueError(f"unknown device id {dev!r} (prod-st1..3, prod-color, maint-m1..4)")
+    raise ValueError(f"unknown device id {dev!r} (prod-st1..3, prod-color, prod-hmi, maint-m1..4)")
 
 
 def dev_of_topic(sub: str) -> str | None:
@@ -49,6 +51,8 @@ def dev_of_topic(sub: str) -> str | None:
         return "prod-" + p[1]
     if len(p) >= 3 and p[0] == "prod" and p[1] in ("st4", "color"):
         return "prod-color"
+    if len(p) == 2 and p == ["prod", "andon"]:
+        return "prod-hmi"
     if len(p) >= 3 and p[0] == "maint" and p[2] in ("state", "ack"):
         return "maint-" + p[1]
     return None
@@ -280,8 +284,17 @@ class Maint(Device):
             "th_off": 5, "th_high": 60, "since_s": int(now - self.since), "sim": True}, True)
 
 
+class Hmi(Device):
+    def piece(self, now):                             # an Andon call now and then
+        if random.random() < 0.1:
+            self.link.publish("prod/andon", {"from": self.dev,
+                                             "type": random.choice(["supervisor", "quality"])})
+
+
 def make_device(dev, link, cycle):
     topics_for(dev)                                   # validates the id
+    if dev == "prod-hmi":
+        return Hmi(dev, link, cycle)
     if dev == "prod-color":
         return ColorStation(dev, link, cycle)
     if dev.startswith("prod-st"):
