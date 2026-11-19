@@ -23,7 +23,7 @@ Production and maintenance tracking for a 4-station Festo CP Lab 400 line, built
 | `firmware/CPLab_ColorStation` | Station 4: Hall trigger + camera colour classification, calibration | 1 Tab5 |
 | `firmware/CPLab_HMI` | Local operator panel: synoptic, OF progress, KPIs, Andon | 1 Tab5 |
 | `firmware/CPLab_Maint` | Vibration → RUN / OFF / ABNORMAL, breakdowns 24 h / 7 days, planned actions | 4 Tab5 (`MACHINE_NUM` 1..4) |
-| `nodered/cplab_flows.json` | 4 tabs: Production, Maintenance, Supervision, Simulator + dashboard | Node-RED |
+| `nodered/cplab_flows.json` | 5 tabs: Production, Maintenance, Supervision, Simulator, Reliability (OPC UA server, seq loss check, WebSocket relay, outage tests) + dashboard ([nodered/README.md](nodered/README.md)) | Node-RED |
 | `web/index.html` + `mqtt.min.js` | Web supervision and remote control (no server needed) | Browser |
 | `mosquitto/mosquitto.conf` | Broker with MQTT 1883 + WebSockets 9001 | Laptop |
 | `web/Festo_Command_Center.html` | Reliability view: link state, buffer, replay, Node-RED relay | Browser |
@@ -88,7 +88,7 @@ The ESP32-P4 GPIOs are 3.3 V only, and the Grove port supplies 5 V. A sensor mod
 
 1. Mosquitto: install, copy `mosquitto/mosquitto.conf`, restart the service, open ports 1883 and 9001 in the laptop firewall.
 2. Arduino IDE: board "M5Tab5" (m5stack esp32 core 3.2.x), PSRAM enabled. Libraries: M5Unified, M5GFX, PubSubClient, ArduinoJson 7. In each sketch folder, copy `config.example.h` to `config.h` (ignored by Git), set the Wi-Fi, the laptop IP, and the station / machine number, then flash.
-3. Node-RED: install `@flowfuse/node-red-dashboard` from the palette, import `cplab_flows.json`, deploy. Dashboard at `http://<laptop>:1880/dashboard`. To keep the breakdown history across restarts, add to `settings.js`:
+3. Node-RED: install `@flowfuse/node-red-dashboard` and `node-red-contrib-opcua` from the palette, set `mqttReconnectTime: 2000` in `settings.js`, import `cplab_flows.json`, deploy (details in [nodered/README.md](nodered/README.md)). Dashboard at `http://<laptop>:1880/dashboard`. To keep the breakdown history across restarts, add to `settings.js`:
    ```js
    contextStorage: { default: { module: "localfilesystem" } },
    ```

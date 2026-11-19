@@ -91,11 +91,13 @@ class Monitor:
             for dev in sorted(self.dev):
                 s = self.dev[dev]
                 m = s.missing()
-                sent = max([s.sent] + list(s.seqs))     # status lags the data by up to 1 s
+                # counted from the first seq this monitor saw (it may start mid-run);
+                # the status seq lags the data by up to 1 s
+                sent = max([s.sent] + list(s.seqs)) - s.first + 1 if s.first is not None else 0
                 rows.append(dict(device=dev, state=s.state, path=s.path, sent=sent,
                                  received=len(s.seqs), missing=len(m), dup=s.dup,
                                  replayed=s.replayed, via_opc=s.via_opc, dropped=s.dropped,
-                                 states=">".join(s.states), missing_seq=" ".join(map(str, m[:20]))))
+                                 states=">".join(map(str, s.states)), missing_seq=" ".join(map(str, m[:20]))))
             return rows
 
 
@@ -123,6 +125,7 @@ def start_opc(url, ns, root, devs, mon: Monitor, log):
 
     def run():
         while True:
+            c = None
             try:
                 c = Client(url, timeout=2)
                 c.connect()
@@ -137,6 +140,11 @@ def start_opc(url, ns, root, devs, mon: Monitor, log):
                     c.get_namespace_array()          # raises if the server went away
             except Exception as e:  # noqa: BLE001
                 log(f"OPC UA: {e.__class__.__name__}, retry in 2 s")
+                try:
+                    if c is not None:
+                        c.disconnect()           # stop the old session's publish loop
+                except Exception:  # noqa: BLE001
+                    pass
                 time.sleep(2)
 
     threading.Thread(target=run, daemon=True).start()
@@ -176,8 +184,10 @@ def main(argv=None):
         else:
             mon.on_data(sub, d, "mqtt")
 
-    c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"seq-monitor-{os.getpid()}")
-    c.on_connect = lambda c, u, f, rc, p: (c.subscribe(pre + "#", 0), log("MQTT connected"))
+    # Persistent session (fixed client id, clean session off, QoS 1): while the monitor
+    # reconnects after a broker restart, Mosquitto keeps its messages (queue_qos0_messages).
+    c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="cplab-seq-monitor", clean_session=False)
+    c.on_connect = lambda c, u, f, rc, p: (c.subscribe(pre + "#", 1), log("MQTT connected"))
     c.on_disconnect = lambda c, u, f, rc, p: log("MQTT disconnected (broker down?)")
     c.on_message = on_message
     c.reconnect_delay_set(1, 1)

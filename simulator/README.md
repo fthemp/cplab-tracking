@@ -7,9 +7,9 @@ Node-RED flows, the website and the outage tests can be built and checked withou
 | File | What it does |
 |---|---|
 | `reliability.py` | The 4 states, buffer, replay, `seq`, status topic. No network code: a readable model for the firmware. |
-| `device_sim.py` | Simulated `prod-st1..3`, `prod-color`, `maint-m1..4`: same topics and payloads as the firmware, plus `seq` and `cplab/rel/<devId>/status`. |
+| `device_sim.py` | Simulated `prod-st1..3`, `prod-color`, `prod-hmi`, `maint-m1..4`: same topics and payloads as the firmware, plus `seq` and `cplab/rel/<devId>/status`. |
 | `seq_monitor.py` | Loss check by `seq` on MQTT + OPC UA: sent vs received, missing, duplicates. What the Node-RED loss check must do. |
-| `opcua_test_server.py` | Stand-in for the Node-RED OPC UA server (port 4840) until that flow exists. |
+| `opcua_test_server.py` | Stand-in for the Node-RED OPC UA server (port 4840), to test without Node-RED. |
 | `tests/test_reliability.py` | The acceptance scenarios of spec section 9 on a fake clock (runs in under a second). |
 
 ## Setup
@@ -23,7 +23,24 @@ python3 -m venv .venv
 .venv/bin/python -m pytest -q tests
 ```
 
-## Running an outage test
+## With Node-RED
+
+Start the simulated devices against Node-RED's OPC UA server, then use the buttons on the
+dashboard page **Fiabilite** (see [nodered/README.md](../nodered/README.md)):
+
+```bash
+.venv/bin/python device_sim.py --dev prod-st1 --dev prod-color --dev prod-hmi --dev maint-m1 --dev maint-m2 --opc opc.tcp://localhost:4840/ --cycle 0.5
+```
+
+Results on 2026-11-19 (5 simulated devices, Node-RED 5.0, `node-red-contrib-opcua` 0.2.355):
+
+| Test | Missing | Switch to OPC UA | Back on MQTT | Verdict |
+|---|---|---|---|---|
+| 16 s `freeze` | 0 | 15.7–15.8 s | 5.0–5.1 s | PASS (5/5) |
+| 14 s `freeze` | 0 | none | 5.2–7.9 s | PASS (5/5) |
+| 10 s `stop` | 0 | none | 6.4–8.4 s | PASS (5/5) |
+
+## Without Node-RED
 
 Four terminals, from `simulator/`:
 
