@@ -269,10 +269,34 @@ def test_buffer_overflow_drops_oldest():
     got = rig.events_received()
     lost_events = rig.events - len(got)
     assert dropped > 0 and lost_events > 0
-    lost_seq = rig.loss()[0]                         # messages that had a seq and were dropped
     assert lost_events <= dropped                    # every lost event is counted
-    assert len(lost_seq) <= dropped
+    assert rig.loss()[0] == set()                    # dropped messages never had a seq: no gap
     assert got == sorted(got)
+
+
+@pytest.mark.parametrize("mode", ["stop", "drop"])
+def test_overflow_keeps_messages_already_numbered(mode):
+    # Messages sent just before the outage come back to the front of the buffer with
+    # their seq (arrival not confirmed). The overflow must drop newer, unnumbered
+    # messages instead, so Node-RED never sees a gap (seen on Linux, Nov 20).
+    cfg = r.Config(buffer_max=20, t_fallback=999)
+    rig = Rig(cfg)
+    rig.mqtt.set_mode("drop")                        # sent, but no echo: messages stay in flight
+    if mode == "drop":
+        rig.run(4)                                   # noticed after the 3 s probe
+    else:
+        rig.run(2)
+        rig.mqtt.set_mode("stop")                    # then the connection closes
+        rig.run(0.1)
+    numbered = [m.seq for m in rig.link.buffer.q if m.seq is not None]
+    assert 0 < len(numbered) < cfg.buffer_max, "needs some in-flight messages back in the buffer"
+    rig.run(12)                                      # overflow
+    assert rig.link.buffer.dropped > 0
+    assert [m.seq for m in rig.link.buffer.q if m.seq is not None] == numbered
+    rig.mqtt.set_mode("up")
+    rig.run(15)
+    assert rig.link.state == r.CONNECTED
+    assert rig.loss()[0] == set()
 
 
 def test_retained_kept_latest_only_and_heartbeat_not_buffered():

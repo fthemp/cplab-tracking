@@ -46,7 +46,7 @@ Other transitions:
 ## 5. Buffer
 
 - Ring buffer in PSRAM. Each entry holds topic, payload, retained flag and timestamp (NTP epoch ms, `millis()` if NTP is unavailable).
-- **Overflow:** drop oldest, increment a `dropped` counter shown on screen and dashboard.
+- **Overflow:** drop the oldest message **that has no `seq` yet**, increment a `dropped` counter shown on screen and dashboard. Messages put back unconfirmed from the in-flight list already carry a `seq`: dropping them would leave a gap in Node-RED, so they are dropped only if the whole buffer carries a `seq`. A gap in `seq` then always means an unexplained loss.
 - **Retained topics** (`count`, `state`): keep only the latest message per topic.
 - **Event topics** (`last`, `andon`, `ack`): keep all, in order.
 - **Heartbeat:** never buffered (stale on arrival).
@@ -110,14 +110,16 @@ Fault injection with `scripts/outage.sh SECONDS MODE` (macOS and Linux). `stop` 
 
 | Test | Mode | Pass criteria | Status Nov 19 (simulated Tab5s) |
 | --- | --- | --- | --- |
-| 10 s outage | `stop` | Zero loss, replay complete within 10 s of recovery | PASS (back in 6.4–8.4 s) |
+| 10 s outage | `stop` | Zero loss, back on MQTT within the return limit (below) | PASS (back in 6.4–8.4 s) |
 | 14 s and 16 s outages | `freeze` | 14 s stays on MQTT, 16 s switches to OPC UA; switch within 15 s ± 2 s | PASS (16 s: switch at 15.7–15.8 s) |
-| 3 × 5 s outages in a row | `stop` | No loss, no duplicate left after Node-RED's seq check | Unit tests only; no dashboard button yet |
-| Outage during replay | `stop` | Order preserved, no loss | Unit tests only |
-| Buffer overflow | `stop`, small `BUFFER_MAX` | Oldest dropped, `dropped` count correct | Unit tests only |
-| Any scenario | | Main loop never blocks more than 100 ms; return to MQTT within 10 s of broker restart | Simulator: worst loop 26–78 ms |
+| 3 × 5 s outages in a row | `stop`, 3 s apart | No loss, no duplicate left after Node-RED's seq check | PASS (back in 5.4–8.9 s) |
+| Outage during replay | 14 s `freeze`, then 5 s `freeze` as soon as a Tab5 is `RECOVERING` | Order preserved, no loss | PASS (3/3; `prod-color` back in 10.6 s, limit 11.7 s for 94 replayed) |
+| Buffer overflow | 12 s `stop`, small `BUFFER_MAX` | Oldest dropped, `dropped` count correct | PASS (26 dropped, no `seq` gap); exact count checked by unit tests |
+| Any scenario | | Main loop never blocks more than 100 ms; back on MQTT within the return limit (below) | Simulator: worst loop 26–78 ms |
 | Website during a 60 s outage | `stop` | Keeps updating through the Node-RED relay and shows the OPC UA path | Relay tested (187 values over OPC UA during 16 s); website switch to do (B) |
 | Loss check (all scenarios) | | Messages sent = messages received, counted by seq, replayed duplicates dropped | PASS in all runs above |
+
+**Return limit** (decision 10). Measured from the broker's return to the Tab5's `CONNECTED` status: at most **10 s**, or `T_STABLE` + reconnect interval + connection time + n ÷ replay rate if that is longer, with n = messages replayed after the broker's return, duplicates included (in-flight messages sent again because their arrival was not confirmed). Reconnect interval: 2 s, or 5 s after an OPC UA fallback, plus 2 s of reconnection overhead (connection, subscription, timer steps: about 1 s measured with the simulator on Linux on Nov 20; to re-measure with the Tab5). With the default values: 10 s up to 20 messages, then +1 s per 20 messages. The promise stays the one users see (how long the dashboards are behind), and a long backlog is allowed the time it really needs at 20 msg/s.
 
 ## 11. Open decisions for the group
 
@@ -130,6 +132,7 @@ Fault injection with `scripts/outage.sh SECONDS MODE` (macOS and Linux). `stop` 
 7. Detect silent outages with the status echo (`T_PROBE = 3 s`, t0 = last echo). **New, to confirm**
 8. Give `seq` at first transmission; heartbeat, status and online/offline carry no `seq`. **New, to confirm**
 9. Pause the 15 s timer during the `T_STABLE` wait. **New, to confirm**
+10. "Back on MQTT within 10 s" includes the 5 s `T_STABLE` wait, so at 20 msg/s only about 80 buffered messages fit (fewer with the reconnect delay). Keep 10 s from the broker's return and accept it for normal traffic, or count it from the end of `T_STABLE`. Seen on Nov 19: a simulated Tab5 with 84 messages to replay came back after 10.6 s. **Decided: count from the broker's return, limit = max(10 s, T_STABLE + reconnect + 2 s + n ÷ 20) (section 10). The 2 s of reconnection overhead were added on Nov 20 after the Linux tests.**
 
 ## 12. Work split and schedule
 
@@ -142,7 +145,7 @@ Deadline Dec 2 (demo + presentation). Hardware: 4 h on the Tab5 in three session
 | 3. Buffer and replay | Nov 11–17 | PSRAM buffer, **in-flight list**, replay, ts / replayed / seq, NTP |  | mosquitto.conf: keepalive, persistence, queue size **(done)** |
 | 4. OPC UA fallback | Nov 11–24 | OPC UA client on the Tab5 |  | Merge MQTT + OPC UA with a path field; WebSocket relay **(done)** |
 | 5. Visibility | Nov 11–24 | Publish the status topic | Tab5 HMI banner; website state, path and source switch; sent vs. received counters | Loss and duplicate detection by seq; **existing dashboards on the merged stream (done)** |
-| 6. Tests and demo | Nov 18–Dec 1 | Tests on the real Tab5 | Demo script, backup video, slides | Test matrix and CSV log **(done for 3 tests; 3 × 5 s, overflow, during-replay to add)** |
+| 6. Tests and demo | Nov 18–Dec 1 | Tests on the real Tab5 | Demo script, backup video, slides | Test matrix and CSV log **(done, 7 test buttons)** |
 
 ## 13. Changes since v0.4
 
@@ -157,3 +160,5 @@ Deadline Dec 2 (demo + presentation). Hardware: 4 h on the Tab5 in three session
 | 9 | New section: persistent session and Mosquitto queue | Without it Node-RED lost the replayed messages after a broker restart |
 | 10 | Fault-injection mode per test, measurement method, status column | `stop` adds restart time: 14 s / 16 s tests use `freeze` |
 | 11 | Decisions 3 and 6 updated; 7–9 added | |
+| 5 | Overflow drops the oldest message without `seq` first (Nov 20) | Linux test: dropping requeued in-flight messages left 2 gaps that looked like unexplained losses |
+| 10, 11 | Return limit grows with the backlog, + 2 s of reconnection overhead (decision 10, Nov 19–20) | A flat 10 s failed with long backlogs; on Linux the reconnect took about 1 s more than the 2 s retry interval |

@@ -96,7 +96,17 @@ class Buffer:
 
     def _trim(self):
         while len(self.q) > self.cap:
-            self.q.popleft()
+            # Drop the oldest message that has no seq yet. A message with a seq was
+            # sent before the link was lost and put back here unconfirmed: dropping
+            # it would show in Node-RED as a gap, the sign of an unexplained loss.
+            # Only if every message has a seq (more in flight than the capacity),
+            # drop the oldest one anyway; it is still counted in `dropped`.
+            for i, m in enumerate(self.q):
+                if m.seq is None:
+                    del self.q[i]
+                    break
+            else:
+                self.q.popleft()
             self.dropped += 1
 
 

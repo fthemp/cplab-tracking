@@ -31,8 +31,23 @@ Dashboard: `http://<laptop>:1880/dashboard`, page **Fiabilite** (`/reliability`)
 ### Pass criteria used by the test buttons
 
 No `seq` missing, nothing dropped by the Tab5 buffer, switch to OPC UA only for outages of 15 s
-or more and then 15 ± 2 s after the start, back on MQTT within 10 s of the broker's return.
+or more and then 15 ± 2 s after the start, back on MQTT within the return limit after the
+broker's return: 10 s, or 5 s (`T_STABLE`) + reconnect interval (2 s, 5 s after OPC UA) +
+2 s (reconnection overhead) + n ÷ 20 s if longer, n = messages replayed, duplicates included (spec v5 section 10).
 Times are measured when the Tab5 status arrives in Node-RED.
+
+Tests with several outages (spec v5 section 10):
+
+| Button | What it does | Extra criterion |
+|---|---|---|
+| 3 x 5 s (stop) | Three 5 s stops, 3 s apart (less than T_STABLE, so the Tab5s never settle in between) | none; times count from the first cut and the last restore |
+| Coupure pendant le rejeu | 14 s freeze, then a 5 s freeze as soon as a Tab5 reports `RECOVERING` (timeout 30 s) | the Tab5 was `RECOVERING` when the 2nd outage started |
+| Debordement (12 s stop) | One 12 s stop (14 s + the restart time of `stop` would reach 15 s and switch to OPC UA) | the buffer overflowed: `dropped` > 0, still no `seq` missing |
+
+`INCONCLUSIVE` means nothing went wrong but the test did not create the situation it checks:
+a Tab5 whose buffer never filled, or one that had already finished replaying. For the overflow
+test, start one simulated Tab5 with a small buffer (`--buffer-max 20`, see
+[simulator/README.md](../simulator/README.md)); with the real 500 messages, nothing overflows.
 
 ## The baseline tabs read the merged stream
 

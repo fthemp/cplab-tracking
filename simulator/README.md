@@ -39,6 +39,20 @@ Results on 2026-11-19 (5 simulated devices, Node-RED 5.0, `node-red-contrib-opcu
 | 16 s `freeze` | 0 | 15.7–15.8 s | 5.0–5.1 s | PASS (5/5) |
 | 14 s `freeze` | 0 | none | 5.2–7.9 s | PASS (5/5) |
 | 10 s `stop` | 0 | none | 6.4–8.4 s | PASS (5/5) |
+| 3 × 5 s `stop`, 3 s apart | 0 | none | 5.4–8.9 s | PASS (3/3) |
+| Outage during replay: 14 s `freeze`, then 5 s `freeze` at RECOVERING | 0 | none | 6.0–10.6 s | PASS (3/3): `prod-color` back in 10.6 s, limit 11.7 s for 94 replayed |
+| Overflow: 12 s `stop`, `prod-color` with `--buffer-max 20` | 0 | none | 7.3 s | PASS: 26 dropped, buffer peak 20/20 |
+
+The overflow test needs a device with a small buffer, started on its own; the other devices
+get `INCONCLUSIVE` (their buffer never fills):
+
+```bash
+.venv/bin/python device_sim.py --dev prod-color --opc opc.tcp://localhost:4840/ --cycle 0.5 --buffer-max 20
+```
+
+`prod-color` publishes about 7 messages per second at `--cycle 0.5`, so it has a long backlog
+to replay. With a flat 10 s limit it failed (10.6 s); the limit now grows with the backlog
+(spec v5 section 10, decision 10), so it passes with 11.7 s allowed for 94 replayed messages.
 
 ## Without Node-RED
 
