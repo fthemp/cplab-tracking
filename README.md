@@ -27,10 +27,10 @@ Production and maintenance tracking for a 4-station Festo CP Lab 400 line, built
 | `web/index.html` + `mqtt.min.js` | Web supervision and remote control (no server needed) | Browser |
 | `mosquitto/mosquitto.conf` | Broker with MQTT 1883 + WebSockets 9001 | Laptop |
 | `web/Festo_Command_Center.html` | Reliability view: link state, buffer, replay, Node-RED relay | Browser |
-| `scripts/outage.sh` | Fault injection: stops, freezes or cuts the broker for N seconds ([scripts/README.md](scripts/README.md)) | Laptop (macOS) |
+| `scripts/outage.sh` | Fault injection: stops, freezes or cuts the broker for N seconds ([scripts/README.md](scripts/README.md)) | Laptop (macOS or Linux) |
 | `simulator/` | Simulated Tab5 devices with the outage handling, `seq` loss monitor, OPC UA test server ([simulator/README.md](simulator/README.md)) | Laptop, without hardware |
 | `tests/outages.csv` | Log written by `outage.sh` (start, end, duration, mode) | Test evidence |
-| `docs/` | Outage-handling spec, Wireshark teaching capture | Reference |
+| `docs/` | Outage-handling spec, [Linux setup guide](docs/linux-setup.md), Wireshark teaching capture | Reference |
 | `media/` | Architecture and reliability diagrams, screenshots | README / slides |
 
 `cplab_common.h` is identical in every sketch folder (Wi-Fi via the ESP32-C6, MQTT, LWT, heartbeat, supervisor messages, identify/reboot, UI helpers). Edit the copy in `firmware/` and copy it into the four folders.

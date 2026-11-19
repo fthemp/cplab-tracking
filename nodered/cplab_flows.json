@@ -39,7 +39,7 @@
   "protocolVersion": "4",
   "keepalive": "15",
   "cleansession": false,
-  "autoUnsubscribe": false,
+  "autoUnsubscribe": true,
   "birthTopic": "cplab/status/nodered",
   "birthQos": "1",
   "birthRetain": "true",
@@ -397,18 +397,23 @@
  },
  {
   "id": "cplabi025",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt001",
   "name": "cplab/prod/+/count",
-  "topic": "cplab/prod/+/count",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 170,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/prod/[^/]+/count$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 290,
   "y": 80,
   "wires": [
    [
@@ -418,18 +423,23 @@
  },
  {
   "id": "cplabi026",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt001",
   "name": "cplab/prod/color/+",
-  "topic": "cplab/prod/color/+",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 170,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/prod/color/[^/]+$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 290,
   "y": 120,
   "wires": [
    [
@@ -439,18 +449,23 @@
  },
  {
   "id": "cplabi027",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt001",
   "name": "cplab/prod/order",
-  "topic": "cplab/prod/order",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 160,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/prod/order$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 280,
   "y": 160,
   "wires": [
    [
@@ -460,18 +475,23 @@
  },
  {
   "id": "cplabi028",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt001",
   "name": "cplab/prod/andon",
-  "topic": "cplab/prod/andon",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 160,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/prod/andon$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 280,
   "y": 200,
   "wires": [
    [
@@ -647,18 +667,23 @@
  },
  {
   "id": "cplabi036",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt002",
   "name": "cplab/maint/+/state",
-  "topic": "cplab/maint/+/state",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 170,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/maint/[^/]+/state$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 290,
   "y": 80,
   "wires": [
    [
@@ -668,18 +693,23 @@
  },
  {
   "id": "cplabi037",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt002",
   "name": "cplab/maint/+/plan/set",
-  "topic": "cplab/maint/+/plan/set",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 180,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/maint/[^/]+/plan/set$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 300,
   "y": 120,
   "wires": [
    [
@@ -689,18 +719,23 @@
  },
  {
   "id": "cplabi038",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt002",
   "name": "cplab/maint/+/ack",
-  "topic": "cplab/maint/+/ack",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 160,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/maint/[^/]+/ack$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 280,
   "y": 160,
   "wires": [
    [
@@ -879,18 +914,23 @@
  },
  {
   "id": "cplabi048",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt003",
   "name": "cplab/status/+",
-  "topic": "cplab/status/+",
-  "qos": "1",
-  "datatype": "utf8",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 160,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/status/[^/]+$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 280,
   "y": 60,
   "wires": [
    [
@@ -900,18 +940,23 @@
  },
  {
   "id": "cplabi049",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt003",
   "name": "cplab/hb/+",
-  "topic": "cplab/hb/+",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 150,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/hb/[^/]+$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 270,
   "y": 100,
   "wires": [
    [
@@ -921,18 +966,23 @@
  },
  {
   "id": "cplabi050",
-  "type": "mqtt in",
+  "type": "switch",
   "z": "cplabt003",
   "name": "cplab/ack/+",
-  "topic": "cplab/ack/+",
-  "qos": "1",
-  "datatype": "json",
-  "broker": "cplabb005",
-  "nl": false,
-  "rap": true,
-  "rh": 0,
-  "inputs": 0,
-  "x": 150,
+  "property": "topic",
+  "propertyType": "msg",
+  "rules": [
+   {
+    "t": "regex",
+    "v": "^cplab/ack/[^/]+$",
+    "vt": "str",
+    "case": false
+   }
+  ],
+  "checkall": "true",
+  "repair": false,
+  "outputs": 1,
+  "x": 270,
   "y": 140,
   "wires": [
    [
@@ -1406,7 +1456,11 @@
   "z": "cplabr000",
   "name": "CPLab merged data",
   "mode": "link",
-  "links": [],
+  "links": [
+   "cplabl001",
+   "cplabl002",
+   "cplabl003"
+  ],
   "x": 700,
   "y": 240,
   "wires": []
@@ -1731,5 +1785,60 @@
   "visible": "true",
   "disabled": "false",
   "groupType": "default"
+ },
+ {
+  "id": "cplabl001",
+  "type": "link in",
+  "z": "cplabt001",
+  "name": "CPLab merged data (MQTT + OPC UA)",
+  "links": [
+   "cplabr015"
+  ],
+  "x": 110,
+  "y": 40,
+  "wires": [
+   [
+    "cplabi025",
+    "cplabi026",
+    "cplabi027",
+    "cplabi028"
+   ]
+  ]
+ },
+ {
+  "id": "cplabl002",
+  "type": "link in",
+  "z": "cplabt002",
+  "name": "CPLab merged data (MQTT + OPC UA)",
+  "links": [
+   "cplabr015"
+  ],
+  "x": 110,
+  "y": 40,
+  "wires": [
+   [
+    "cplabi036",
+    "cplabi037",
+    "cplabi038"
+   ]
+  ]
+ },
+ {
+  "id": "cplabl003",
+  "type": "link in",
+  "z": "cplabt003",
+  "name": "CPLab merged data (MQTT + OPC UA)",
+  "links": [
+   "cplabr015"
+  ],
+  "x": 110,
+  "y": 40,
+  "wires": [
+   [
+    "cplabi048",
+    "cplabi049",
+    "cplabi050"
+   ]
+  ]
  }
 ]

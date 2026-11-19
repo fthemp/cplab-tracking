@@ -45,3 +45,6 @@ __pycache__/
 
 # ===== School documents not for publication =====
 Fiche_defi_*
+
+# ===== Private notes (never published) =====
+challenges-and-solutions.md

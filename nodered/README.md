@@ -34,6 +34,20 @@ No `seq` missing, nothing dropped by the Tab5 buffer, switch to OPC UA only for 
 or more and then 15 ± 2 s after the start, back on MQTT within 10 s of the broker's return.
 Times are measured when the Tab5 status arrives in Node-RED.
 
+## The baseline tabs read the merged stream
+
+Production, Maintenance and Supervision no longer have their own `mqtt in` nodes. Each tab has
+one `link in` ("CPLab merged data") fed by the Reliability tab, and each former `mqtt in` is now
+a `switch` node keeping only its old topic (same position and wires). So these dashboards keep
+updating while the Tab5s are on OPC UA and Mosquitto is down: tested with a 40 s stop, the
+station counts kept rising on the Production page.
+
+Not covered: commands sent **to** the Tab5s (OF, messages, actions) still go through MQTT, so
+they don't reach them while the broker is down. Heartbeats are never buffered (spec), so the
+Supervision page shows the Tab5s as silent during an outage: that's expected.
+
+On Linux, see [docs/linux-setup.md](../docs/linux-setup.md).
+
 ## Relay messages (for the website, team B)
 
 One JSON object per WebSocket message:
@@ -61,6 +75,8 @@ those messages are lost for it. So the broker config node uses client id `cplab-
 clean session off, keepalive 15 s, and `mosquitto.conf` has `queue_qos0_messages true`:
 the broker keeps Node-RED's messages while it reconnects.
 
-Side effect to know: Mosquitto sends one copy per matching subscription, and Node-RED has
-overlapping ones (`cplab/#` here, `cplab/prod/+/count` in Production...). The baseline tabs
-always received those copies (harmless, values are cumulative); the seq check ignores them.
+Mosquitto sends one copy per matching subscription. Node-RED now has a single subscription
+(`cplab/#`), so each message arrives once. `autoUnsubscribe` stays on: when nodes are removed
+and redeployed, their subscriptions leave the session instead of causing extra copies.
+If an old session still holds subscriptions (e.g. after testing older flows), clear it once,
+with Node-RED stopped: `mosquitto_sub -i cplab-nodered -t cplab/none -W 1`.
