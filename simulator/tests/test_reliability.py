@@ -1,4 +1,4 @@
-"""Acceptance scenarios of spec v4 section 9, on a fake clock (runs in ~1 s).
+"""Acceptance scenarios of spec v5 section 10, on a fake clock (runs in ~1 s).
 
 Broker modes: "up", "stop" (connection closed, like `outage.sh stop`) and
 "drop" (packets silently lost, like `outage.sh drop`).

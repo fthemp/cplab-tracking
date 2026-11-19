@@ -1,4 +1,4 @@
-"""Reliability layer of spec v4 (MQTT outage handling), as plain Python.
+"""Reliability layer of spec v5 (MQTT outage handling), as plain Python.
 
 This module has no network code: the MQTT and OPC UA transports are passed in,
 so the logic can be unit-tested with a fake clock (tests/) and reused by the
@@ -11,7 +11,7 @@ States (spec section 4):
   OPC_FALLBACK  outage >= T_FALLBACK           -> publishes go over OPC UA
   RECOVERING    broker reachable for T_STABLE  -> replay the buffer, then CONNECTED
 
-Choices that the spec leaves open (to confirm with the group):
+Choices made here, now written in spec v5 (sections 3 to 6; some still to confirm):
   * Outage detection. A silent outage (packets dropped, no TCP reset) is not seen
     by a failed publish: the TCP stack accepts the data. So the device publishes
     its retained status topic every second and subscribes to it (probe). No echo

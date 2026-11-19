@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simulated CPLab Tab5 devices with the outage handling of spec v4.
+"""Simulated CPLab Tab5 devices with the outage handling of spec v5.
 
 Each device publishes the same topics and payloads as the real firmware (README
 topic map), plus `seq` in every data payload and `cplab/rel/<devId>/status`.

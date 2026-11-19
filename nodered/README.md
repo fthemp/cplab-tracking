@@ -2,7 +2,7 @@
 
 `cplab_flows.json` has 5 tabs: Production, Maintenance, Supervision, Simulator (the baseline)
 and **CPLab Reliability**, the outage handling of the spec
-([docs/spec-mqtt-outage-handling-v4.md](../docs/spec-mqtt-outage-handling-v4.md)).
+([docs/spec-mqtt-outage-handling-v5.md](../docs/spec-mqtt-outage-handling-v5.md)).
 Dashboard: `http://<laptop>:1880/dashboard`, page **Fiabilite** (`/reliability`).
 
 ## Setup

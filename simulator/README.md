@@ -1,7 +1,7 @@
 # Simulated devices for the outage tests
 
 Python stand-ins for the Tab5, with the outage handling of the spec
-([docs/spec-mqtt-outage-handling-v4.md](../docs/spec-mqtt-outage-handling-v4.md)), so the
+([docs/spec-mqtt-outage-handling-v5.md](../docs/spec-mqtt-outage-handling-v5.md)), so the
 Node-RED flows, the website and the outage tests can be built and checked without hardware.
 
 | File | What it does |
@@ -73,7 +73,7 @@ Without `--opc`, a device in `OPC_FALLBACK` keeps its messages and replays them 
 Main loop worst gap: 26–78 ms (limit 100 ms). Unit tests also cover 3 × 5 s outages,
 an outage during replay, buffer overflow and the replay rate.
 
-## Choices the spec leaves open (to agree with the group)
+## Choices made in the simulator (now in spec v5, some still to confirm)
 
 1. **Detecting a silent outage.** When packets are dropped (or the broker hangs), publishing does
    not fail: TCP accepts the data. With `keepalive 15` the Tab5 would notice after 15–30 s, too late
