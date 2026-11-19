@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supervision CP Lab 400</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --alu:#e6e9ec; --panel:#ffffff; --ink:#16212b; --muted:#5d6a75; --line:#c4cad0;
+  --blue:#0a8ad0; --run:#1f9d55; --warn:#e8a317; --alarm:#cf3b3b; --off:#8c969f;
+  --red:#cf3b3b; --green:#1f9d55; --bluec:#0a8ad0; --black:#16212b;
+  --f-body:"Barlow",system-ui,"Segoe UI",Roboto,Arial,sans-serif;
+  --f-num:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--alu);color:var(--ink);font:16px/1.45 var(--f-body)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* top bar */
+.bar{background:var(--ink);color:#fff;display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding:10px 20px}
+.bar h1{font:600 26px/1 var(--f-num);margin:0;letter-spacing:.01em}
+.bar h1 small{font:400 15px var(--f-body);color:#9fb3c3;margin-left:10px}
+.conn{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+.conn input{background:#24323e;border:1px solid #3a4a57;border-radius:4px;padding:6px 8px;color:#fff;width:150px}
+.conn input.url{width:220px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:14px;padding:4px 10px;border-radius:999px;background:#24323e}
+.pill i{width:10px;height:10px;border-radius:50%;background:var(--alarm)}
+.pill.ok i{background:var(--run)}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:4px;padding:7px 14px;cursor:pointer}
+.btn.sec{background:var(--muted)}
+.btn.warn{background:var(--alarm)}
+.btn.small{padding:4px 9px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+nav{display:flex;gap:4px;padding:0 20px;background:var(--ink)}
+nav button{background:none;border:0;color:#9fb3c3;padding:10px 16px;cursor:pointer;border-bottom:4px solid transparent;font-weight:500}
+nav button[aria-selected=true]{color:#fff;border-bottom-color:var(--blue)}
+
+main{padding:20px;max-width:1500px;margin:0 auto}
+section[hidden]{display:none}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px}
+.box h2{font:600 20px var(--f-num);margin:0 0 12px;color:var(--ink)}
+.grid2{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;margin-top:16px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.muted{color:var(--muted)}
+.empty{color:var(--muted);padding:12px 0}
+
+/* ---------- line synoptic (the memorable element) ---------- */
+.line{position:relative;display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:8px 2px 18px}
+.line::before{content:"";position:absolute;left:0;right:0;top:50%;height:14px;margin-top:-7px;
+  background:repeating-linear-gradient(90deg,#b7bec5 0 18px,#a7afb7 18px 22px);border-radius:7px;z-index:0}
+.st{position:relative;z-index:1;flex:1 0 190px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px 10px;border-top:8px solid var(--off)}
+.st.RUN{border-top-color:var(--run)} .st.WAIT{border-top-color:var(--warn)}
+.st h3{margin:0;font:600 18px var(--f-num)} .st h3 span{font:400 14px var(--f-body);color:var(--muted);margin-left:6px}
+.st .n{font:700 64px/1 var(--f-num);font-variant-numeric:tabular-nums;margin:6px 0 4px}
+.st .meta{font-size:14px;color:var(--muted)}
+.st .tk{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:4px;color:#fff;font-size:13px;background:var(--off)}
+.tk.ok{background:var(--run)} .tk.slow{background:var(--warn)} .tk.bad{background:var(--alarm)}
+.st .offline{color:var(--alarm);font-size:13px}
+.buf{position:relative;z-index:1;flex:0 0 132px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.slots{display:flex;gap:4px;background:var(--alu);padding:6px;border-radius:6px;border:1px solid var(--line)}
+.slot{width:18px;height:34px;border-radius:3px;background:var(--panel);border:1px solid var(--line)}
+.slot.f{border-color:transparent}
+.buf.ok .slot.f{background:var(--run)} .buf.limit .slot.f,.buf.error .slot.f{background:var(--warn)} .buf.over .slot.f{background:var(--alarm)}
+.buf .lab{font:600 15px var(--f-num);background:var(--panel);padding:0 8px;border-radius:4px}
+.buf.over .lab{color:var(--alarm)} .buf .say{font-size:12px;color:var(--muted);background:var(--panel);padding:0 6px;border-radius:4px}
+
+/* colour progress */
+.cbar{display:grid;grid-template-columns:22px 70px 1fr 90px;align-items:center;gap:10px;margin:8px 0}
+.sw{width:22px;height:22px;border-radius:4px}
+.trk{height:14px;background:var(--alu);border-radius:3px;overflow:hidden}
+.trk div{height:100%}
+.cbar .v{text-align:right;font:600 18px var(--f-num);font-variant-numeric:tabular-nums}
+.RED{background:var(--red)} .GREEN{background:var(--green)} .BLUE{background:var(--bluec)} .BLACK{background:var(--black)} .UNKNOWN{background:var(--off)}
+.kpis{display:flex;flex-wrap:wrap;gap:24px;margin-top:12px;font-size:15px}
+.kpis b{font:600 22px var(--f-num)}
+
+form.of{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+form label{display:flex;flex-direction:column;font-size:14px;color:var(--muted);gap:4px}
+form input,form select,form textarea{border:1px solid var(--line);border-radius:4px;padding:6px 8px;background:var(--panel);color:var(--ink)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+
+.log{max-height:300px;overflow:auto;font-size:14px}
+.log div{padding:5px 8px;border-bottom:1px solid var(--alu)}
+.log .a-quality,.log .e-ABNORMAL{background:#fbeaea} .log .a-supervisor{background:#fdf6e6}
+.log time{color:var(--muted);margin-right:8px;font-variant-numeric:tabular-nums}
+
+/* maintenance cards */
+.mach{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.mc{background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.mc .state{padding:14px 16px;color:#fff;background:var(--off)}
+.mc.RUN .state{background:var(--run)} .mc.ABNORMAL .state{background:var(--alarm)}
+.mc .state h3{margin:0;font:600 18px var(--f-num);opacity:.9}
+.mc .state p{margin:2px 0 0;font:700 34px/1.1 var(--f-num)}
+.mc .state small{display:block;min-height:18px}
+.mc .body{padding:12px 16px}
+.mc .nums{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;gap:6px;margin-bottom:10px}
+.mc .nums b{display:block;font:700 30px/1 var(--f-num)} .mc .nums b.hot{color:var(--alarm)}
+.mc .nums span{font-size:12px;color:var(--muted)}
+.mc .plan{font-size:14px;margin:4px 0;padding:6px 8px;border-radius:4px;background:#e6f2fa}
+.mc .plan.cur{background:#fcecdc}
+.mc .plan em{font-style:normal;color:var(--muted);display:block;font-size:12px}
+.meter{height:8px;background:var(--alu);border-radius:4px;overflow:hidden;margin:8px 0 2px}
+.meter div{height:100%;background:var(--blue)}
+
+/* devices */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:6px}
+td{padding:6px;border-bottom:1px solid var(--alu);vertical-align:top}
+tr.off td{color:var(--off)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--alarm)}
+.dot.on{background:var(--run)} .dot.mute{background:var(--warn)}
+.tw{overflow-x:auto}
+
+#toast{position:fixed;right:20px;bottom:20px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:6px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}
+#toast.show{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+/* communication reliability dashboard */
+.net-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.net-kpi{background:#f1f5f8;border:1px solid var(--line);border-radius:6px;padding:14px}
+.net-kpi strong{display:block;font:700 26px var(--f-num);overflow-wrap:anywhere}
+.net-state{font-weight:700;padding:6px 12px;border-radius:6px;display:inline-block;background:#e6e9ec}
+.net-state.CONNECTED{background:#d9f3e4;color:#136c3a}.net-state.BUFFERING,.net-state.RECOVERING{background:#fff0c9;color:#805400}.net-state.OPC_FALLBACK{background:#fbe0e0;color:#9b2020}
+.net-progress{height:14px;background:#e6e9ec;border-radius:8px;overflow:hidden}.net-progress>div{height:100%;background:var(--blue);width:0;transition:width .2s}
+.net-log{max-height:230px;overflow:auto}.net-log div{border-bottom:1px solid var(--line);padding:7px 0}
+@media(max-width:650px){.net-grid{grid-template-columns:1fr 1fr}}
+
+/* === Reliability command center / industrial design system === */
+:root{--ink:#0d1726;--alu:#eef2f7;--line:#d9e1ea;--blue:#1479e6;--f-body:system-ui,"Segoe UI",Arial,sans-serif;--f-num:system-ui,"Segoe UI",Arial,sans-serif}
+body{background:#edf2f8;color:#15243a}
+.bar{background:#0b1525;padding:16px 26px;border-bottom:1px solid #253650}.bar h1{font-size:22px;letter-spacing:-.5px}.bar h1 small{font-size:12px;letter-spacing:.05em;text-transform:uppercase}
+nav{background:#0b1525;padding:0 24px;gap:10px}nav button{padding:13px 17px;border-bottom-width:3px}nav button[aria-selected=true]{color:#fff}
+main{max-width:1600px;padding:26px}.box{border:1px solid #dbe3ed;border-radius:12px;box-shadow:0 3px 14px #1a335009}.btn{border-radius:7px;font-weight:650}
+#v-net{--navy:#0b1829;--cyan:#22d3ee;--electric:#5e9fff;--green:#22c55e;--amber:#fbbf24;--red:#fb7185;font-variant-numeric:tabular-nums}
+#v-net .command-head{background:linear-gradient(125deg,#101f36,#122b49 75%,#153a58);border:1px solid #274462;border-radius:16px;padding:26px 28px;color:#fff;position:relative;overflow:hidden;margin-bottom:16px}
+#v-net .command-head:after{content:"";position:absolute;width:340px;height:340px;border:1px solid #6bbaff22;border-radius:50%;right:-85px;top:-230px;box-shadow:0 0 0 60px #6bbaff09,0 0 0 120px #6bbaff06;pointer-events:none}
+#v-net .eyebrow{font-size:11px;font-weight:800;letter-spacing:.18em;color:#80d6ff;text-transform:uppercase}
+#v-net h2{font:750 24px/1.2 system-ui;margin:8px 0 8px;letter-spacing:-.6px}
+#v-net .command-head p{color:#bdd0e5;margin:0;max-width:720px;font-size:14px}
+#v-net .head-top{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap}
+#v-net .live-tag{border:1px solid #46617e;background:#203955;border-radius:99px;padding:8px 13px;font-size:12px;font-weight:750;letter-spacing:.04em;white-space:nowrap}
+#v-net .dashboard{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.9fr);gap:16px;margin-bottom:16px}
+#v-net .dark-panel{background:#101e31;color:#fff;border:1px solid #2c415a;border-radius:14px;padding:22px;box-shadow:0 12px 28px #07152618}
+#v-net .panel-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+#v-net .panel-title{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:#8faac7}
+#v-net .state-big{font-size:clamp(24px,3vw,38px);font-weight:800;letter-spacing:-1px;margin:15px 0 6px;display:block;color:#f8fafc}
+#v-net .net-state.CONNECTED{color:#4ade80}#v-net .net-state.BUFFERING{color:#fbbf24}#v-net .net-state.OPC_FALLBACK{color:#67e8f9}#v-net .net-state.RECOVERING{color:#a5b4fc}
+#v-net .dark-sub{color:#9eb2ca;font-size:13px}
+#v-net .signal-path{display:flex;align-items:center;gap:9px;margin:24px 0 4px;flex-wrap:wrap}
+#v-net .path-node{background:#1a3049;border:1px solid #35516f;border-radius:9px;padding:11px 13px;min-width:104px;flex:1;text-align:center}
+#v-net .path-node strong{display:block;font-size:13px}#v-net .path-node small{font-size:10px;color:#9eb2ca}
+#v-net .path-arrow{color:#38bdf8;font-size:23px;font-weight:700}
+#v-net .net-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+#v-net .net-kpi{background:#fff;border:1px solid #dce5ee;border-radius:12px;padding:18px;min-height:112px;display:flex;flex-direction:column;justify-content:space-between}
+#v-net .net-kpi span:first-child{font-size:12px;color:#61738a;font-weight:650}
+#v-net .net-kpi strong{font-size:30px;font-weight:800;letter-spacing:-1px;color:#12243d}
+#v-net .net-kpi.danger strong{color:#db3f57}
+#v-net .buffer-block{margin-top:17px;padding-top:16px;border-top:1px solid #30435b}
+#v-net .buffer-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:10px}
+#v-net .net-progress{height:11px;background:#31465f;border-radius:99px;overflow:hidden;border:0}
+#v-net #net-fill{height:100%;background:linear-gradient(90deg,#36c7e7,#65a4ff);border-radius:99px;transition:width .3s}
+#v-net .net-note{font-size:12px;color:#9db2ca;margin-top:11px}
+#v-net .net-bottom{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+#v-net .box h2{font:750 17px system-ui;letter-spacing:-.2px}
+#v-net .field-label{display:block;font-size:12px;font-weight:700;color:#53647a;margin:12px 0 6px}
+#v-net #relay-url{width:100%;padding:11px 12px;border:1px solid #cad7e4;border-radius:8px;font-size:13px}
+#v-net .hint{color:#62758b;font-size:12px;line-height:1.6}
+#v-net .test-banner{display:inline-block;background:#fff4d7;color:#895900;border-radius:6px;padding:5px 9px;font-size:11px;font-weight:800;margin:4px 0 8px}
+#v-net .net-log{max-height:260px;overflow:auto;font-size:13px}#v-net .net-log>div{padding:10px 12px;border-bottom:1px solid #e5eaf1}
+#v-net .footnote{font-size:12px;color:#65768a;margin-top:14px}
+@media(max-width:960px){#v-net .dashboard,#v-net .net-bottom{grid-template-columns:1fr}}
+@media(max-width:560px){#v-net .net-grid{grid-template-columns:1fr}#v-net .signal-path{gap:5px}#v-net .path-node{min-width:75px;padding:8px}#v-net .path-arrow{font-size:16px}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>Supervision CP Lab 400 <small>coques smartphone</small></h1>
+  <div class="conn">
+    <input class="url" id="url" aria-label="Adresse du broker WebSocket" placeholder="ws://192.168.1.10:9001">
+    <input id="user" aria-label="Utilisateur MQTT" placeholder="utilisateur (option)">
+    <input id="pass" type="password" aria-label="Mot de passe MQTT" placeholder="mot de passe">
+    <button class="btn" id="connect">Connecter</button>
+    <span class="pill" id="status"><i></i><span>Deconnecte</span></span>
+  </div>
+</header>
+<nav role="tablist">
+  <button role="tab" aria-selected="true" data-tab="prod">Production</button>
+  <button role="tab" aria-selected="false" data-tab="maint">Maintenance</button>
+  <button role="tab" aria-selected="false" data-tab="dev">Tab5 et messages</button>
+  <button role="tab" aria-selected="false" data-tab="net">Fiabilite reseau</button>
+</nav>
+
+<main>
+<!-- ================= PRODUCTION ================= -->
+<section id="v-prod">
+  <div class="box">
+    <h2 id="lineTitle">Ligne</h2>
+    <div class="line" id="line"></div>
+    <div class="kpis" id="kpis"></div>
+  </div>
+  <div class="grid2">
+    <div class="box">
+      <h2>Ordre de fabrication</h2>
+      <div id="colors"></div>
+      <form class="of" id="ofForm" style="margin-top:16px">
+        <label>Numero OF<input name="of" value="OF-001"></label>
+        <label>Rouge<input name="RED" type="number" min="0" value="5"></label>
+        <label>Vert<input name="GREEN" type="number" min="0" value="5"></label>
+        <label>Bleu<input name="BLUE" type="number" min="0" value="5"></label>
+        <label>Noir<input name="BLACK" type="number" min="0" value="5"></label>
+        <label>Takt (s)<input name="takt_s" type="number" min="1" value="20"></label>
+        <label>WIP max par buffer<input name="wip_max" type="number" min="1" max="8" value="3"></label>
+      </form>
+      <div class="actions">
+        <button class="btn" data-act="sendOrder">Lancer l'OF</button>
+        <button class="btn sec" data-act="resetProd">Remettre les compteurs a zero</button>
+      </div>
+    </div>
+    <div class="box">
+      <h2>Andon</h2>
+      <div class="log" id="andon"><div class="empty">Aucun appel Andon.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MAINTENANCE ================= -->
+<section id="v-maint" hidden>
+  <div class="mach" id="machines"></div>
+  <div class="grid2">
+    <div class="box">
+      <h2>Planifier les actions</h2>
+      <form id="planForm" class="of">
+        <label>Machine<select name="id"><option>m1</option><option>m2</option><option>m3</option><option>m4</option></select></label>
+        <label>Date preventive<input name="pd" type="date"></label>
+        <label style="grid-column:span 2">Tache preventive<input name="pt" placeholder="Graissage convoyeur"></label>
+        <label>Date curative<input name="cd" type="date"></label>
+        <label style="grid-column:span 2">Tache curative<input name="ct" placeholder="Remplacer la courroie"></label>
+      </form>
+      <div class="actions"><button class="btn" data-act="savePlan">Enregistrer le plan</button></div>
+      <p class="muted" style="font-size:14px">Le plan est stocke par Node-RED, qui renvoie les statistiques a la Tab5 de la machine.</p>
+    </div>
+    <div class="box">
+      <h2>Journal des changements d'etat</h2>
+      <div class="log" id="events"><div class="empty">Aucun changement observe depuis l'ouverture de la page.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DEVICES & MESSAGES ================= -->
+<section id="v-dev" hidden>
+  <div class="box">
+    <h2>Tab5 connectees</h2>
+    <div class="tw" id="devices"><div class="empty">Aucune Tab5 vue pour l'instant. Verifiez la connexion au broker.</div></div>
+  </div>
+  <div class="grid2">
+    <div class="box">
+      <h2>Envoyer un message</h2>
+      <form id="msgForm" class="of">
+        <label>Destinataire<select name="target" id="target">
+          <option value="all">Toutes les Tab5</option><option value="prod">Groupe production</option><option value="maint">Groupe maintenance</option>
+        </select></label>
+        <label>Niveau<select name="level"><option value="info">Information</option><option value="warn">Attention</option><option value="alarm">Alarme</option></select></label>
+        <label>Duree (s)<input name="duration" type="number" min="3" max="600" value="15"></label>
+        <label style="grid-column:1/-1">Texte (sans accents de preference)<textarea name="text" rows="3"></textarea></label>
+      </form>
+      <div class="actions"><button class="btn" data-act="sendMsg">Envoyer le message</button></div>
+    </div>
+    <div class="box">
+      <h2>Accuses de lecture</h2>
+      <div class="log" id="acks"><div class="empty">Aucun accuse recu.</div></div>
+    </div>
+  </div>
+</section>
+<!-- ================= FIABILITE COMMUNICATION ================= -->
+<section id="v-net" hidden>
+  <div class="command-head">
+    <div class="head-top"><div><div class="eyebrow">CP LAB 400 / INDUSTRIAL RESILIENCE</div><h2>Centre de fiabilité des communications</h2><p>Surveillance des flux industriels, continuité de service et repli MQTT → OPC UA.</p></div><span class="live-tag" id="net-hero-badge">● ÉTAT NON CONFIRMÉ</span></div>
+  </div>
+  <div class="dashboard">
+    <div class="dark-panel">
+      <div class="panel-top"><span class="panel-title">État du système · Temps réel</span><span class="live-tag" id="net-link-label">DIAGNOSTIC</span></div>
+      <strong class="state-big"><span class="net-state" id="net-state">INCONNU</span></strong>
+      <div class="dark-sub" id="net-mode">Mode réel : en attente des données de diagnostic.</div>
+      <div class="signal-path" aria-label="Architecture de transmission">
+        <div class="path-node"><strong>Tab5</strong><small>Acquisition</small></div><span class="path-arrow">→</span>
+        <div class="path-node"><strong>MQTT / OPC UA</strong><small>Transport</small></div><span class="path-arrow">→</span>
+        <div class="path-node"><strong>Node-RED</strong><small>Fusion</small></div><span class="path-arrow">→</span>
+        <div class="path-node"><strong>Web</strong><small>Supervision</small></div>
+      </div>
+      <div class="buffer-block">
+        <div class="buffer-row"><span>Tampon local (Tab5)</span><strong id="net-buffer">—</strong></div>
+        <div class="net-progress" role="progressbar" aria-label="Remplissage du tampon" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="net-progress"><div id="net-fill"></div></div>
+        <div class="net-note" id="net-freshness">Dernière mise à jour : aucune donnée.</div>
+      </div>
+    </div>
+    <div class="net-grid">
+      <div class="net-kpi"><span>Chemin actif des données</span><strong id="net-source" style="font-size:19px;letter-spacing:-.3px;overflow-wrap:anywhere">Non déterminé</strong></div>
+      <div class="net-kpi"><span>Messages envoyés</span><strong id="net-sent">—</strong></div>
+      <div class="net-kpi"><span>Messages reçus</span><strong id="net-received">—</strong></div>
+      <div class="net-kpi danger"><span>Messages perdus signalés</span><strong id="net-dropped">—</strong></div>
+      <div class="net-kpi"><span>Messages rejoués</span><strong id="net-replayed">—</strong></div>
+      <div class="net-kpi"><span>Seuil de repli</span><strong>15 <span style="font-size:16px">sec</span></strong></div>
+    </div>
+  </div>
+  <div class="net-bottom">
+    <div class="box"><h2>01 / Liaison de secours Node-RED</h2><p class="hint">WebSocket indépendant de Mosquitto. Adresse et format des messages à confirmer avec le responsable Node-RED.</p>
+      <label class="field-label" for="relay-url">URL DU RELAIS WEBSOCKET</label><input id="relay-url" placeholder="ws://adresse-odroid:port/chemin">
+      <div class="actions"><button class="btn" id="relay-connect">Connecter le relais</button><button class="btn sec" id="relay-disconnect">Déconnecter</button></div><p class="hint" id="relay-status" role="status">Relais non configuré.</p>
+    </div>
+    <div class="box"><h2>02 / Banc d'essai de résilience</h2><span class="test-banner">MODE SIMULATION · PAS DE COUPURE RÉELLE</span>
+      <p class="hint">Valider la séquence BUFFERING → OPC_FALLBACK à 15 s, puis RECOVERING → CONNECTED après stabilisation et rejeu.</p>
+      <div class="actions"><button class="btn" id="demo-start">Simuler une coupure</button><button class="btn sec" id="demo-recover">Simuler le retour MQTT</button><button class="btn sec" id="demo-stop">Terminer la simulation</button></div>
+      <p class="hint" id="demo-clock">Seuil de repli : 15 secondes.</p>
+    </div>
+  </div>
+  <div class="box"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2>03 / Journal des événements</h2><span class="hint">Traçabilité des changements d'état</span></div><div class="net-log" id="net-log"><div class="muted">Aucun événement.</div></div></div>
+  <p class="footnote">Les compteurs sont déclaratifs et doivent être rapprochés côté Node-RED avec des identifiants de séquence pour démontrer les pertes et les doublons. L'état réel dépend de l'intégration avec l'Odroid et les Tab5.</p>
+</section>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- mqtt.js: local copy first (offline lab), CDN otherwise -->
+<script src="mqtt.min.js"></script>
+<script>
+if (!window.mqtt) document.write('<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"><\/script>');
+</script>
+<script>
+"use strict";
+const ROOT = "cplab";
+const COLORS = ["RED","GREEN","BLUE","BLACK"];
+const COL_FR = {RED:"Rouge",GREEN:"Vert",BLUE:"Bleu",BLACK:"Noir",UNKNOWN:"Inconnu"};
+const DEVICES = ["prod-st1","prod-st2","prod-st3","prod-color","prod-hmi","maint-m1","maint-m2","maint-m3","maint-m4"];
+const S = { stations:{}, color:{}, lastColor:null, order:{}, machines:{}, stats:{}, devices:{}, andon:[], events:[], acks:[] };
+let client = null, raf = 0, orderFormTouched = false;
+let mqttUp = false;
+
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const hm = ts => new Date(ts).toLocaleTimeString("fr-FR");
+function toast(t){ const e=$("#toast"); e.textContent=t; e.classList.add("show"); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("show"),2200); }
+function store(k,v){ try{ localStorage.setItem("cplab."+k,v); }catch(e){} }
+function load(k,d){ try{ return localStorage.getItem("cplab."+k) ?? d; }catch(e){ return d; } }
+
+// ------------------------------------------------------------- connection
+$("#url").value = load("url", `ws://${location.hostname || "localhost"}:9001`);
+$("#user").value = load("user", "");
+DEVICES.forEach(d => $("#target").insertAdjacentHTML("beforeend", `<option value="${d}">${d}</option>`));
+
+function setStatus(ok, text){ $("#status").classList.toggle("ok", ok); $("#status span").textContent = text; }
+
+function connect(){
+  if (!window.mqtt){ toast("mqtt.min.js introuvable : copiez-le a cote de index.html"); return; }
+  if (client){ client.end(true); client = null; }
+  const url = $("#url").value.trim(); store("url", url); store("user", $("#user").value);
+  setStatus(false, "Connexion...");
+  client = mqtt.connect(url, { username: $("#user").value || undefined, password: $("#pass").value || undefined,
+    clientId: "cplab-web-" + Math.random().toString(16).slice(2, 8), reconnectPeriod: 3000, connectTimeout: 6000 });
+  client.on("connect", () => { mqttUp = true; netTransportChanged(); setStatus(true, "Connecte"); client.subscribe(ROOT + "/#", { qos: 1 }); });
+  client.on("reconnect", () => { mqttUp = false; netTransportChanged(); setStatus(false, "Reconnexion..."); });
+  client.on("close", () => { mqttUp = false; netTransportChanged(); setStatus(false, "Deconnecte"); });
+  client.on("error", e => { mqttUp = false; netTransportChanged(); setStatus(false, "Erreur : " + e.message); });
+  client.on("message", onMessage);
+}
+$("#connect").addEventListener("click", connect);
+
+function pub(topic, obj, retain=false){
+  if (!client || !client.connected){ toast("Non connecte au broker"); return false; }
+  client.publish(topic, typeof obj === "string" ? obj : JSON.stringify(obj), { qos: 1, retain });
+  return true;
+}
+
+// ------------------------------------------------------------- routing
+function onMessage(topic, buf){
+  const txt = buf.toString(); let j = null;
+  try { j = JSON.parse(txt); } catch(e) {}
+  const t = topic.split("/"); const now = Date.now();
+  if (t[1] === "reliability" && j && typeof j === "object") { receiveNet(j, "MQTT"); return; }
+  if (t[1] === "prod"){
+    if (/^st[1-4]$/.test(t[2]) && t[3] === "count" && j) S.stations[t[2]] = Object.assign(j, { seen: now });
+    else if (t[2] === "color" && t[3] === "count" && j) S.color = j;
+    else if (t[2] === "color" && t[3] === "last" && j) S.lastColor = j;
+    else if (t[2] === "order" && j){ S.order = j; fillOrderForm(); }
+    else if (t[2] === "andon" && j){ S.andon.unshift(Object.assign({ ts: now }, j)); S.andon = S.andon.slice(0, 30); toast("Andon : " + (j.type === "quality" ? "alerte qualite" : "appel superviseur")); }
+  } else if (t[1] === "maint" && j){
+    const id = t[2];
+    if (t[3] === "state"){
+      const prev = S.machines[id];
+      if (prev && prev.state !== j.state){ S.events.unshift({ ts: now, id, from: prev.state, to: j.state, reason: j.reason, sim: j.sim }); S.events = S.events.slice(0, 80); }
+      S.machines[id] = Object.assign(j, { seen: now });
+    } else if (t[3] === "stats") S.stats[id] = j;
+    else if (t[3] === "ack") { S.events.unshift({ ts: now, id, to: "ACK", reason: j.by || "" }); }
+  } else if (t[1] === "status"){
+    const d = S.devices[t[2]] = S.devices[t[2]] || { id: t[2] }; d.online = txt === "online";
+  } else if (t[1] === "hb" && j){
+    const d = S.devices[t[2]] = Object.assign(S.devices[t[2]] || {}, j, { id: t[2], online: true, seen: now });
+  } else if (t[1] === "ack" && j){
+    S.acks.unshift({ ts: now, id: t[2], text: j.text }); S.acks = S.acks.slice(0, 40);
+  }
+  schedule();
+}
+function schedule(){ if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); }
+
+// ------------------------------------------------------------- render
+function render(){ renderLine(); renderColors(); renderAndon(); renderMachines(); renderEvents(); renderDevices(); renderAcks(); }
+
+function wipMax(){ return Number(S.order.wip_max) || 3; }
+function online(id){ const d = S.devices[id]; return d ? d.online : null; }
+
+function renderLine(){
+  const keys = ["st1","st2","st3","st4"], devs = ["prod-st1","prod-st2","prod-st3","prod-color"], max = wipMax();
+  const takt = Number(S.order.takt_s) || 0;
+  $("#lineTitle").textContent = "Ligne" + (S.order.of ? "  -  " + S.order.of : "");
+  let h = "";
+  keys.forEach((k, i) => {
+    const s = S.stations[k] || {};
+    let tk = "", tkc = "";
+    if (s.cycle_ms && takt){ const r = s.cycle_ms / (takt * 1000); tkc = r <= 1 ? "ok" : r <= 1.15 ? "slow" : "bad"; tk = (s.cycle_ms/1000).toFixed(1) + " s / takt " + takt + " s"; }
+    const on = online(devs[i]);
+    h += `<article class="st ${esc(s.state || "")}">
+      <h3>Poste ${i+1}<span>${esc(s.name || "")}</span></h3>
+      <div class="n">${s.count ?? "--"}</div>
+      <div class="meta">${s.cadence ?? 0} pcs/min</div>
+      ${tk ? `<span class="tk ${tkc}">${tk}</span>` : ""}
+      ${on === false ? `<div class="offline">Tab5 hors ligne</div>` : ""}
+    </article>`;
+    if (i < 3){
+      const a = S.stations[k], b = S.stations[keys[i+1]];
+      const wip = a && b ? a.count - b.count : null;
+      const lvl = wip === null ? "" : wip < 0 ? "error" : wip > max ? "over" : wip === max ? "limit" : "ok";
+      const say = wip === null ? "en attente" : wip < 0 ? "ecart comptage" : wip > max ? "stop kanban" : wip === max ? "limite" : "produire";
+      let slots = ""; for (let n = 0; n < Math.min(max, 8); n++) slots += `<span class="slot ${wip !== null && n < wip ? "f" : ""}"></span>`;
+      h += `<div class="buf ${lvl}" title="Buffer poste ${i+1} vers poste ${i+2}">
+        <div class="slots">${slots}</div><span class="lab">WIP ${wip ?? "?"} / ${max}</span><span class="say">${say}</span></div>`;
+    }
+  });
+  $("#line").innerHTML = h;
+  let bott = null; keys.forEach(k => { const s = S.stations[k]; if (s && s.cycle_ms && (!bott || s.cycle_ms > bott.c)) bott = { k, c: s.cycle_ms }; });
+  const wipTot = [0,1,2].reduce((t,i) => { const a=S.stations[keys[i]], b=S.stations[keys[i+1]]; return t + (a && b ? a.count - b.count : 0); }, 0);
+  const target = COLORS.reduce((t,c) => t + (Number(S.order.qty?.[c]) || 0), 0);
+  $("#kpis").innerHTML = `
+    <span>Sorties <b>${S.stations.st4?.count ?? "--"}${target ? " / " + target : ""}</b></span>
+    <span>En-cours total <b>${wipTot}</b></span>
+    <span>Goulot <b>${bott ? "poste " + bott.k.slice(2) + " (" + (bott.c/1000).toFixed(1) + " s)" : "--"}</b></span>
+    <span>Derniere piece <b>${S.lastColor ? esc(COL_FR[S.lastColor.color] || S.lastColor.color) : "--"}</b></span>`;
+}
+
+function renderColors(){
+  const q = S.order.qty || {};
+  let h = "";
+  [...COLORS, "UNKNOWN"].forEach(c => {
+    const n = Number(S.color[c]) || 0, t = Number(q[c]) || 0;
+    if (c === "UNKNOWN" && !n) return;
+    const pct = t ? Math.min(100, 100 * n / t) : 0;
+    h += `<div class="cbar"><span class="sw ${c}"></span><span>${COL_FR[c]}</span>
+      <div class="trk"><div class="${n > t && t ? "" : c}" style="width:${pct}%;${n > t && t ? "background:var(--warn)" : ""}"></div></div>
+      <span class="v">${n}${t ? " / " + t : ""}</span></div>`;
+  });
+  $("#colors").innerHTML = h;
+}
+
+function renderAndon(){
+  if (!S.andon.length) return;
+  $("#andon").innerHTML = S.andon.map(a => `<div class="a-${esc(a.type)}"><time>${hm(a.ts)}</time><b>${a.type === "quality" ? "Alerte qualite" : "Appel superviseur"}</b> depuis ${esc(a.from)}</div>`).join("");
+}
+
+const ST_FR = { RUN: "En marche", OFF: "Arret", ABNORMAL: "Anomalie" };
+function since(s){ s = Number(s) || 0; return s < 3600 ? `${Math.floor(s/60)} min ${String(s%60).padStart(2,"0")} s` : `${Math.floor(s/3600)} h ${String(Math.floor(s%3600/60)).padStart(2,"0")} min`; }
+function renderMachines(){
+  let h = "";
+  ["m1","m2","m3","m4"].forEach(id => {
+    const m = S.machines[id] || {}, st = S.stats[id] || {};
+    const pct = m.th_high ? Math.min(100, 100 * (m.activity || 0) / (m.th_high * 1.5)) : 0;
+    const on = online("maint-" + id);
+    h += `<article class="mc ${esc(m.state || "")}">
+      <div class="state"><h3>${id.toUpperCase()} ${esc(m.name || "")}</h3>
+        <p>${ST_FR[m.state] || "Pas de donnees"}</p>
+        <small>${m.state ? "depuis " + since(m.since_s) : ""} ${esc(m.reason || "")} ${m.sim ? "(simulation)" : ""}</small></div>
+      <div class="body">
+        <div class="nums">
+          <div><b class="${st.day > 0 ? "hot" : ""}">${st.day ?? "--"}</b><span>pannes 24 h</span></div>
+          <div><b class="${st.week > 0 ? "hot" : ""}">${st.week ?? "--"}</b><span>pannes 7 jours</span></div>
+          <div><b>${st.mttr_min ?? "--"}</b><span>MTTR (min)</span></div>
+        </div>
+        <div class="plan"><em>Prochaine preventive</em>${st.next_prev ? esc(st.next_prev.date + "  " + st.next_prev.task) : "non planifiee"}</div>
+        <div class="plan cur"><em>Prochaine curative</em>${st.next_cur ? esc(st.next_cur.date + "  " + st.next_cur.task) : "aucune"}</div>
+        <div class="meter" title="Niveau vibratoire"><div style="width:${pct}%"></div></div>
+        <div class="muted" style="font-size:13px">Activite ${m.activity ?? "--"} (seuils ${m.th_off ?? "-"} / ${m.th_high ?? "-"})${on === false ? " - Tab5 hors ligne" : ""}</div>
+        <div class="actions">
+          <button class="btn small" data-act="ack" data-id="${id}">Acquitter</button>
+          <button class="btn small sec" data-act="mcmd" data-id="${id}" data-cmd="learn">Apprendre</button>
+          <button class="btn small warn" data-act="mcmd" data-id="${id}" data-cmd="sim_fault">Simuler panne</button>
+          <button class="btn small sec" data-act="mcmd" data-id="${id}" data-cmd="sim_end">Fin simulation</button>
+        </div>
+      </div></article>`;
+  });
+  $("#machines").innerHTML = h;
+}
+
+function renderEvents(){
+  if (!S.events.length) return;
+  $("#events").innerHTML = S.events.map(e => `<div class="e-${esc(e.to)}"><time>${hm(e.ts)}</time><b>${e.id.toUpperCase()}</b> ${esc(e.from || "")} vers ${esc(e.to)} ${esc(e.reason || "")}${e.sim ? " (sim)" : ""}</div>`).join("");
+}
+
+function renderDevices(){
+  const list = Object.values(S.devices).sort((a,b) => a.id.localeCompare(b.id));
+  if (!list.length) return;
+  const now = Date.now();
+  $("#devices").innerHTML = `<table><thead><tr><th>Tab5</th><th>Etat</th><th>Adresse IP</th><th>RSSI</th><th>En service depuis</th><th>Firmware</th><th>Actions</th></tr></thead><tbody>` +
+    list.map(d => {
+      const mute = d.online && d.seen && now - d.seen > 30000;
+      return `<tr class="${d.online ? "" : "off"}"><td><b>${esc(d.id)}</b><br><span class="muted">${esc(d.title || "")}</span></td>
+        <td><span class="dot ${d.online ? (mute ? "mute" : "on") : ""}"></span>${d.online ? (mute ? "muette" : "en ligne") : "hors ligne"}</td>
+        <td>${esc(d.ip || "-")}</td><td>${d.rssi ?? "-"}</td><td>${d.up ? since(d.up) : "-"}</td><td>${esc(d.fw || "-")}</td>
+        <td><button class="btn small" data-act="msgTo" data-id="${esc(d.id)}">Message</button>
+            <button class="btn small sec" data-act="dcmd" data-id="${esc(d.id)}" data-cmd="identify">Identifier</button>
+            <button class="btn small warn" data-act="dcmd" data-id="${esc(d.id)}" data-cmd="reboot">Redemarrer</button></td></tr>`;
+    }).join("") + `</tbody></table>`;
+}
+
+function renderAcks(){
+  if (!S.acks.length) return;
+  $("#acks").innerHTML = S.acks.map(a => `<div><time>${hm(a.ts)}</time><b>${esc(a.id)}</b> a affiche : ${esc(a.text)}</div>`).join("");
+}
+
+// ------------------------------------------------------------- forms
+function fillOrderForm(){
+  if (orderFormTouched) return;
+  const f = $("#ofForm");
+  if (S.order.of) f.of.value = S.order.of;
+  COLORS.forEach(c => { if (S.order.qty && S.order.qty[c] != null) f[c].value = S.order.qty[c]; });
+  if (S.order.takt_s) f.takt_s.value = S.order.takt_s;
+  if (S.order.wip_max) f.wip_max.value = S.order.wip_max;
+}
+$("#ofForm").addEventListener("input", () => orderFormTouched = true);
+
+const actions = {
+  sendOrder(){
+    const f = $("#ofForm"), qty = {};
+    COLORS.forEach(c => qty[c] = Number(f[c].value) || 0);
+    if (pub(ROOT + "/prod/order", { of: f.of.value.trim(), qty, takt_s: Number(f.takt_s.value) || 20, wip_max: Number(f.wip_max.value) || 3, ts: Date.now() }, true)){
+      orderFormTouched = false; toast("OF lance");
+    }
+  },
+  resetProd(){
+    if (confirm("Remettre a zero les compteurs des 4 postes de production ?") && pub(ROOT + "/cmd/prod/action", { cmd: "reset" })) toast("Compteurs remis a zero");
+  },
+  savePlan(){
+    const f = $("#planForm");
+    const plan = { prev: f.pd.value || f.pt.value ? { date: f.pd.value, task: f.pt.value } : null,
+                   cur:  f.cd.value || f.ct.value ? { date: f.cd.value, task: f.ct.value } : null };
+    if (pub(`${ROOT}/maint/${f.id.value}/plan/set`, plan)) toast("Plan enregistre pour " + f.id.value.toUpperCase());
+  },
+  ack(el){ if (pub(`${ROOT}/maint/${el.dataset.id}/ack`, { id: el.dataset.id, by: "superviseur web" })) toast("Acquitte"); },
+  mcmd(el){ if (pub(`${ROOT}/cmd/maint-${el.dataset.id}/action`, { cmd: el.dataset.cmd })) toast("Commande envoyee"); },
+  dcmd(el){
+    if (el.dataset.cmd === "reboot" && !confirm("Redemarrer " + el.dataset.id + " ?")) return;
+    if (pub(`${ROOT}/cmd/${el.dataset.id}/action`, { cmd: el.dataset.cmd })) toast("Commande envoyee");
+  },
+  msgTo(el){ $("#target").value = el.dataset.id; $("#msgForm").text.focus(); },
+  sendMsg(){
+    const f = $("#msgForm"), text = f.text.value.trim();
+    if (!text){ toast("Ecrivez un texte"); f.text.focus(); return; }
+    if (pub(`${ROOT}/cmd/${f.target.value}/msg`, { text, level: f.level.value, duration: Number(f.duration.value) || 15, from: "Superviseur" })){
+      f.text.value = ""; toast("Message envoye a " + f.target.value);
+    }
+  }
+};
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]"); if (el && actions[el.dataset.act]) { e.preventDefault(); actions[el.dataset.act](el); }
+  const tab = e.target.closest("[data-tab]");
+  if (tab){
+    document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b === tab));
+    ["prod","maint","dev","net"].forEach(v => $("#v-" + v).hidden = v !== tab.dataset.tab);
+  }
+});
+
+
+// ------------------------------------------------------------- reliability module
+// Proposed diagnostic topic: cplab/reliability/<device>/status
+// Proposed relay payload: {type:"reliability", device:"prod-hmi", state:"BUFFERING",
+//   source:"BUFFER", sent:12, received:10, dropped:0, replayed:0, buffer:2, capacity:500, ts:...}
+// The final schema and relay endpoint must be agreed with the Node-RED team.
+const N = { state:"INCONNU", source:"Non determine", sent:null, received:null,
+  dropped:null, replayed:null, buffer:null, capacity:null, updated:0, mode:"reel", events:[] };
+let relay = null, relayManualClose = false, demoTimer = null, demoStart = 0, demoReturn = 0;
+function netLog(msg){
+  N.events.unshift({ts:Date.now(), text:msg}); N.events=N.events.slice(0,60);
+  $("#net-log").innerHTML=N.events.map(e=>`<div><time>${hm(e.ts)}</time>${esc(e.text)}</div>`).join("");
+}
+function netTransportChanged(){
+  if (N.mode === "demo") return;
+  if (!mqttUp && (!relay || relay.readyState !== WebSocket.OPEN)) {
+    $("#net-mode").textContent="Aucune liaison active : les donnees affichees peuvent etre perimees.";
+  } else $("#net-mode").textContent="Mode reel : donnees de diagnostic recues depuis Tab5 / Node-RED.";
+  renderNet();
+}
+function receiveNet(j, path){
+  if (N.mode === "demo" || !j || typeof j !== "object") return;
+  const valid=["CONNECTED","BUFFERING","OPC_FALLBACK","RECOVERING"];
+  const state = valid.includes(j.state) ? j.state : N.state;
+  if (state !== N.state) netLog("Etat : " + N.state + " -> " + state + " (" + path + ")");
+  N.state=state; N.source=String(j.source || path).slice(0,80);
+  for(const k of ["sent","received","dropped","replayed","buffer","capacity"]){
+    if(j[k] !== undefined && j[k] !== null && Number.isFinite(Number(j[k])) && Number(j[k]) >= 0) N[k]=Number(j[k]);
+  }
+  N.updated=Date.now(); renderNet();
+}
+function renderNet(){
+  const st=$("#net-state"); st.textContent=N.state; st.className="net-state " + N.state;
+  $("#net-hero-badge").textContent=N.mode === "demo" ? "● SIMULATION ACTIVE" : (N.state === "INCONNU" ? "● ÉTAT NON CONFIRMÉ" : "● DONNÉES REÇUES");
+  $("#net-link-label").textContent=N.mode === "demo" ? "TEST LOCAL" : (mqttUp ? "MQTT CONNECTÉ" : "MQTT INDISPONIBLE");
+  $("#net-source").textContent=N.source;
+  for(const k of ["sent","received","dropped","replayed"]) $("#net-"+k).textContent=N[k] == null ? "—" : N[k].toLocaleString("fr-FR");
+  $("#net-buffer").textContent=N.buffer == null ? "—" : N.buffer + " / " + (N.capacity ?? "?");
+  const pct=N.buffer != null && N.capacity > 0 ? Math.min(100,100*N.buffer/N.capacity) : 0;
+  $("#net-fill").style.width=pct+"%"; $("#net-progress").setAttribute("aria-valuenow",String(Math.round(pct)));
+  const age=N.updated ? Math.floor((Date.now()-N.updated)/1000) : null;
+  $("#net-freshness").textContent=age === null ? "Derniere mise a jour : aucune donnee." :
+    "Derniere mise a jour : il y a " + age + " s" + (age>10 ? " — DONNEES POTENTIELLEMENT PERIMEES" : "");
+  if(N.mode === "demo") $("#net-mode").textContent="SIMULATION LOCALE : aucune mesure reelle, aucune panne injectee.";
+}
+function connectRelay(){
+  const url=$("#relay-url").value.trim();
+  if(!/^wss?:\/\//i.test(url)){toast("Entrez une adresse ws:// ou wss:// valide");return;}
+  store("relay-url",url); relayManualClose=false;
+  if(relay){relay.onclose=null;relay.close();}
+  try {
+    relay=new WebSocket(url);
+    $("#relay-status").textContent="Connexion au relais...";
+    relay.onopen=()=>{$("#relay-status").textContent="Relais WebSocket connecte";netLog("Relais connecte");netTransportChanged();};
+    relay.onmessage=e=>{
+      try {const j=JSON.parse(e.data);if(j && (j.type==="reliability" || j.state))receiveNet(j,"RELAIS NODE-RED");}
+      catch(err){console.warn("Message relais non JSON",err);}
+    };
+    relay.onerror=()=>{$("#relay-status").textContent="Erreur du relais (verifier l'adresse et Node-RED)";};
+    relay.onclose=()=>{$("#relay-status").textContent="Relais deconnecte";netLog("Relais deconnecte");netTransportChanged();};
+  }catch(err){$("#relay-status").textContent="Adresse du relais invalide";}
+}
+$("#relay-url").value=load("relay-url","");
+$("#relay-connect").addEventListener("click",connectRelay);
+$("#relay-disconnect").addEventListener("click",()=>{relayManualClose=true;if(relay)relay.close();});
+function demoSet(state,source){
+  if(N.state!==state)netLog("[SIMULATION] " + N.state + " -> " + state);
+  N.state=state;N.source=source;N.updated=Date.now();renderNet();
+}
+$("#demo-start").addEventListener("click",()=>{
+  clearInterval(demoTimer);N.mode="demo";demoStart=Date.now();demoReturn=0;
+  Object.assign(N,{sent:100,received:100,dropped:0,replayed:0,buffer:0,capacity:500});
+  demoSet("BUFFERING","Tampon local (simulation)");
+  demoTimer=setInterval(()=>{
+    const sec=Math.floor((Date.now()-demoStart)/1000);
+    N.sent=100+sec*20;N.buffer=Math.min(500,sec*20);N.dropped=Math.max(0,sec*20-500);
+    if(sec>=15){N.buffer=300;N.dropped=0;N.received=100+(sec-15)*20;demoSet("OPC_FALLBACK","OPC UA (simulation)");}
+    else {N.received=100;renderNet();}
+    $("#demo-clock").textContent="Coupure simulee : "+sec+" s (repli a 15 s)";
+  },250);
+});
+$("#demo-recover").addEventListener("click",()=>{
+  if(N.mode!=="demo"){toast("Demarrez d'abord la simulation");return;}
+  clearInterval(demoTimer);demoReturn=Date.now();demoSet("RECOVERING","Rejeu MQTT (simulation)");
+  const initial=N.buffer || 0;
+  demoTimer=setInterval(()=>{
+    const sec=(Date.now()-demoReturn)/1000;
+    N.replayed=Math.min(initial,Math.floor(sec*20));N.buffer=initial-N.replayed;
+    N.received=(N.received||0)+0;renderNet();
+    $("#demo-clock").textContent="Retour MQTT : "+sec.toFixed(1)+" s ; stabilisation 5 s et vidage du tampon";
+    if(sec>=5 && N.buffer===0){clearInterval(demoTimer);demoSet("CONNECTED","MQTT (simulation)");}
+  },250);
+});
+$("#demo-stop").addEventListener("click",()=>{
+  clearInterval(demoTimer);N.mode="reel";
+  Object.assign(N,{state:"INCONNU",source:"Non determine",sent:null,received:null,dropped:null,replayed:null,buffer:null,capacity:null,updated:0});
+  $("#demo-clock").textContent="Seuil de repli : 15 secondes.";netLog("Fin de la simulation");netTransportChanged();
+});
+setInterval(renderNet,1000);
+
+renderNet();
+render();
+setInterval(schedule, 1000);           // refresh "since" timers and stale states
+window.addEventListener("load", () => setTimeout(connect, 300));
+</script>
+</body>
+</html>

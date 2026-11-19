@@ -1,0 +1,47 @@
+# ===== Everyone =====
+.DS_Store
+Thumbs.db
+*.swp
+*~
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.*
+!secrets.example.*
+
+# ===== Office lock files (Excel/Word open) =====
+~$*
+
+# ===== VS Code =====
+.vscode/*
+!.vscode/extensions.json
+
+# ===== Arduino / PlatformIO =====
+# config.h holds Wi-Fi password and broker IP: copy config.example.h -> config.h
+firmware/**/config.h
+build/
+.pio/
+*.bin
+*.hex
+*.elf
+
+# ===== Node-RED (if a local user dir ends up in the repo) =====
+nodered/.node-red/
+nodered/*_cred.json
+nodered/.config.*.json
+
+# ===== Mosquitto runtime =====
+mosquitto/*.db
+mosquitto/passwd
+
+# ===== Python (simulator) =====
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# ===== School documents not for publication =====
+Fiche_defi_*
